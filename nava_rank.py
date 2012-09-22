@@ -6,49 +6,58 @@ from flask.ext.sqlalchemy import *
 from datetime import datetime, timedelta
 from BeautifulSoup import BeautifulSoup
 from twython import Twython
+#from keys import *  #REMOVE THIS before pushing to git
 
 
 app = Flask(__name__)
 
+#app.config['SQLALCHEMY_DATABASE_URI']='sqlite:////Users/fernandonava/desktop/Projects/python_projects/tavorite/test-news.db' # REMOVE THIS
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 
 
 db = SQLAlchemy(app)
 
-tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
-                   app_secret=os.environ['CONSUMER_SECRET'],
-                   oauth_token=os.environ['ACCESS_TOKEN'],
-                   oauth_token_secret=os.environ['ACCESS_TOKEN_SECRET'])
+#tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
+#                   app_secret=os.environ['CONSUMER_SECRET'],
+#                   oauth_token=os.environ['ACCESS_TOKEN'],
+#                   oauth_token_secret=os.environ['ACCESS_TOKEN_SECRET'])
 
 
 @app.route('/')
 def home():
-    links = list_of_links()
+    links = Tweet.query.filter_by(url_exists=True).order_by(Tweet.score_with_time.desc()).limit(40).all()
     time = tweets_age_for_view(links) 
+    #links = list_of_links(Nava_rank.rt_count)
+
+    ### NEEDS A FILTER FOR MEDIA LINKS
     return render_template('show_links.html', links=links, time=time)
 
 @app.route('/best')
 def best():
-    links = list_of_links(Nava_rank.rt_count)
+    links = Tweet.query.filter_by(url_exists=True).order_by(Tweet.score.desc()).limit(50).all()
+    #links = list_of_links(Nava_rank.rt_count)
     time = tweets_age_for_view(links)
+
+    ###NEEDS A FILTER FOR MEDIA LINKS
     return render_template('best_of_week.html', links=links, time=time)
 
 
 @app.route('/photos')
 def photos():
-    photos = [x for x in Tweet.query.all() if len(x.picture) > 0]
-    photos.reverse()
-    photos = photos[0:50]
+    photos = Tweet.query.filter(Tweet.picture != unicode("")).order_by(Tweet.date.desc()).limit(50).all()
     return render_template('photos.html', photos=photos)
 
 @app.route('/videos')
 def videos():
-    start = Nava_rank.query.order_by(Nava_rank.rt_count).all()
-    start.reverse()
-    links = [x for x in start if x.tweet.url_exists]
-    youtube = [x for x in links if 'youtube' in x.tweet.main_url]
-    vimeo   = [x for x in links if 'vimeo' in x.tweet.main_url]
+    youtube = Tweet.query.filter_by(url_exists=True).filter(Tweet.main_url == 'www.youtube.com').order_by(Tweet.score.desc()).limit(50).all()
+
+    vimeo = Tweet.query.filter_by(url_exists=True).filter(Tweet.main_url == 'www.vimeo.com').order_by(Tweet.score.desc()).limit(50).all()
+
+    #start = Nava_rank.query.order_by(Nava_rank.rt_count).all()
+    #start.reverse()
+    #links = [x for x in start if x.tweet.url_exists]
+
     videos = youtube + vimeo
     videos = videos[0:30]
     time = tweets_age_for_view(videos)
@@ -79,7 +88,13 @@ class Tweet(db.Model):
     picture          = db.Column(db.Unicode(500))
     date             = db.Column(db.DateTime)
     page_text        = db.Column(db.UnicodeText)
-    tmp_rt_count     = db.Column(db.Integer)
+    retweet_count    = db.Column(db.Integer)
+    headline         = db.Column(db.Unicode(500))
+    average_rt_count = db.Column(db.Float)
+    std_deviation    = db.Column(db.Float)
+    std_dev_sigma    = db.Column(db.Float)
+    score            = db.Column(db.Integer)
+    score_with_time  = db.Column(db.Float)  
 
     def __init__(self, feed):
 
@@ -153,14 +168,23 @@ class Tweet(db.Model):
         self.user_url         = feed['user']['url']
         self.statuses_count   = feed['user']['statuses_count']
         self.profile_picture  = feed['user']['profile_image_url_https']
-        self.tmp_rt_count     = feed['retweet_count']
+        self.retweet_count    = feed['retweet_count']
         self.tweet_created_at = feed['created_at']
         self.tweet_id         = feed['id']
         self.text             = self.grab_text(feed)
         self.retweeted        = feed['retweeted'] 
         self.date             = datetime.utcnow()
         self.url_exists       = self.bool_url_exists(feed)
+        self.headline         = self.pull_headline(self.page_text)
 
+
+        self.average_rt_count = 1.0
+        self.std_deviation    = 1.0
+        self.std_dev_sigma    = .25
+        self.score            = 0.5
+        self.score_with_time  = 0.5
+        
+        
 
     def __repr__(self):
         return "<Tweet by %r>" % self.screen_name
@@ -181,58 +205,6 @@ class Tweet(db.Model):
             return bool(0)
         else: return bool(1)
 
-
-
-
-
-class Nava_rank(db.Model): 
-
-    id               = db.Column(db.Integer, primary_key=True)
-    tweet_id         = db.Column(db.Integer)
-    retweet_count    = db.Column(db.Integer)
-    rt_count         = db.Column(db.Integer)
-    time_rt_count    = db.Column(db.DateTime)
-    tweet_id         = db.Column(db.Integer, db.ForeignKey('tweet.id'))
-    tweet            = db.relationship('Tweet', backref=db.backref('retweets', lazy='dynamic'))
-    js_rt            = db.Column(db.UnicodeText)
-    std_deviation    = db.Column(db.Float)
-    average_rt_count = db.Column(db.Float)
-    std_dev_sigma    = db.Column(db.Float)
-    score            = db.Column(db.Float)
-    
-
-    def __init__(self, x, tweet):
-
-        self.tweet_id         = x['id']
-        self.rt_count         = x['retweet_count']
-        self.js_rt            = json.dumps([self.rt_count])
-        self.retweet_count    = max(json.loads(self.js_rt))
-        self.tweet            = tweet
-        self.std_deviation    = 1.0
-        self.average_rt_count = 1.0 
-        self.std_dev_sigma    = 0.25
-        self.score            = 0.5 
-
-
-
-
-
-
-class Headline(db.Model):
-
-    id         = db.Column(db.Integer, primary_key=True)
-    html       = db.Column(db.UnicodeText)
-    tweet_id   = db.Column(db.Integer, db.ForeignKey('tweet.id'))
-    tweet      = db.relationship('Tweet', backref=db.backref('title', lazy='dynamic'))
-    headline   = db.Column(db.Unicode(500))
-
-    
-
-    def __init__(self, x, tweet):
-        self.html = x
-        self.tweet = tweet
-        self.headline = self.pull_headline(self.html)
-        
     def pull_headline(self, page_text):
         h = HTMLParser.HTMLParser()
 
@@ -253,8 +225,7 @@ class Headline(db.Model):
             #add self
             return clean_up_2
         else: 
-            return self.tweet.text
-
+            return self.text
 
     def remove_separator_and_extra_content(self, content, separator): 
         dash = re.findall(separator, content)
@@ -281,6 +252,11 @@ class Headline(db.Model):
 
 
 
+
+
+
+
+
 def get_tweets_update_db():
     get_tweets =  tavorite.getHomeTimeline(count=200, include_entities=1, include_retweets=1)
     for x in get_tweets:
@@ -288,40 +264,18 @@ def get_tweets_update_db():
         tweet_in_db = Tweet.query.filter_by(tweet_id=tweet.tweet_id).first()
         if tweet_in_db:
             if tweet_age_in_hours(tweet_in_db) < 14:
-                tweet_has_retweets = tweet_in_db.retweets.first() 
-                update_retweet_count(tweet, tweet_has_retweets)
+                if tweet_in_db.retweet_count < tweet.retweet_count:
+                    tweet_in_db.retweet_count = tweet.retweet_count
+                    db.session.commit()
         else:
             if tweet.url_exists:
                 db.session.add(tweet)
-                db.session.add(Nava_rank(x, tweet))
-                db.session.add(Headline(tweet.page_text, tweet))
     db.session.commit()
     print "update successful"
 
 
 
-def update_retweet_count(TWEET, TWEET_has_retweet):
-    if type(json.loads(TWEET_has_retweet.js_rt)) != list:
-        list_of_retweets = [0]
-    else:
-        list_of_retweets = list(json.loads(TWEET_has_retweet.js_rt))
-
-    lst = []
-
-    for old_rt in list_of_retweets:
-        lst.append(old_rt)
-    
-    lst.append(TWEET.tmp_rt_count)
-
-    TWEET_has_retweet.retweet_count = max(lst)
-    TWEET_has_retweet.js_rt         = json.dumps(lst)
-
-    db.session.commit()
-
-  
-
-
-# THE CODE BELOW IS INCREDIBLE SLOW
+# STILL NOT GOOD ENOUGH. FASTE FASTER FASTER
 
 def update_averages_and_std_deviation(tweets_in_db):
     """Includes retweets of all tweets. Should it be only links?"""
@@ -336,36 +290,46 @@ def update_averages_and_std_deviation(tweets_in_db):
         if updating not in already_updated:
             
             user = Tweet.query.filter_by(user_id=z.user_id).all()
-            retweet_counts = [y.retweets.first().retweet_count for y in user]
+            retweet_counts = [y.retweet_count for y in user]
+            
+            
+            # average retweet count of user_id
+            average = sum(retweet_counts)/len(retweet_counts)
+            calculate = sum([pow((g-average), 2) for g in retweet_counts])
+            standard_deviation = math.sqrt(calculate/len(retweet_counts))
+            Tweet.query.filter_by(user_id=z.user_id).update(dict(average_rt_count=average, std_deviation=standard_deviation))
+            db.session.commit()
+
             for x in user:
                 if tweet_age_in_hours(x) < 1680:
-                    rt = x.retweets.first()
-                    average = sum(retweet_counts)/len(retweet_counts)
-                    calculate = sum([pow((g-average), 2) for g in retweet_counts])
-                    std_deviation = math.sqrt(calculate/len(retweet_counts))
-                    rt.std_deviation    = std_deviation
-                    rt.average_rt_count = average
 
-                    if std_deviation != 0:
-                        rt.std_dev_sigma    = (rt.retweet_count - average)/std_deviation
-                    if len(retweet_counts) < 30 and rt.std_dev_sigma > 3:
-                        rt.std_dev_sigma = 3.0
+                    if standard_deviation != 0:
+                        x.std_dev_sigma    = (x.retweet_count - average)/standard_deviation
+                    if len(retweet_counts) < 30 and x.std_dev_sigma > 3:
+                        x.std_dev_sigma = 3.0
 
                     if len(retweet_counts) < 5:
-                        rt.std_dev_sigma = 0
-                
+                        x.std_dev_sigma = 0
+                #ok
                     tweet_hour_age = tweet_age_in_hours(x)
-                    number_of_times_retweeted = times_appears_in_stream(rt.tweet.link, link_counter)
 
-                    points = (10*(rt.std_dev_sigma))*number_of_times_retweeted
+                    number_of_times_retweeted = times_appears_in_stream(x.link, link_counter)
+
+                    points = (10*(x.std_dev_sigma))*number_of_times_retweeted
                     score_with_time = hacker_news(points, tweet_hour_age)
-                    rt.rt_count = round(points)
-                    rt.score = score_with_time
+
+                    x.score = round(points)
+                    x.score_with_time = score_with_time
                     db.session.commit()
             
         
         already_updated.append(updating)
                              
+
+
+
+
+
 
 
 
@@ -396,11 +360,11 @@ def media_in_link(item):
 def filter_for_double_links(all_links):
     filtered_links = []
 
-    tweet = []
+    tweet_links = []
 
     for lnk in all_links:
-        link = lnk.tweet.link
-        user_id = lnk.tweet.user_id
+        link = lnk.link
+        user_id = lnk.user_id
 
         if (link, user_id) not in filtered_links:
 
@@ -408,15 +372,14 @@ def filter_for_double_links(all_links):
 
             filtered_links.append(x)
 
-            tweet.append(lnk)
+            tweet_links.append(link)
 
-    return tweet
+    return tweet_links
 
-def links_number_of_times(tweets):
+def links_number_of_times(Tweets):
     """tweets = Tweet.query.all()"""
-    nava_rank = [x.retweets.first() for x in tweets if x.url_exists] 
-    nava = filter_for_double_links(nava_rank)
-    links = [x.tweet.link for x in nava] 
+    tweets = [x for x in Tweets if x.url_exists] 
+    links = filter_for_double_links(tweets)
     cnt = collections.Counter(links).most_common(100)
     return cnt
 
@@ -439,11 +402,7 @@ def times_appears_in_stream(link, counter):
 
 def tweet_age_in_hours(Tweet):
 
-    if isinstance(Tweet, Nava_rank):
-        created_at = Tweet.tweet.date
-    else:
-        created_at = Tweet.date
-
+    created_at = Tweet.date
     right_now = datetime.utcnow()
     tweet_age = right_now - created_at
     age_in_hours = (tweet_age.days)*24 + tweet_age.seconds/3600
@@ -466,27 +425,27 @@ def hacker_news(votes, item_hour_age, gravity=1.8):
     return votes/pow((item_hour_age+2), gravity)
 
 
-def list_of_links(sorted_by=Nava_rank.score):
-    def filter_for_double_links(nava_rank_objects):
-        filtered_links = []
-        tweets = []
-        for lnk in nava_rank_objects:
-            url = lnk.tweet.link
-            user_id = lnk.tweet.user_id
-            if (url, user_id) not in filtered_links:
-                unique_link_from_user = (url, user_id)
-                filtered_links.append(unique_link_from_user)
-                tweets.append(lnk)
-        return tweets
-    start = Nava_rank.query.order_by(sorted_by).all()
-    all_links = [x for x in start if x.tweet.url_exists]
-    all_links.reverse()
-    links = filter(media_in_link, all_links)
-    links = filter_for_double_links(links)
-    links = links[0:30]
-
-    return links
+#def list_of_links(sorted_by=Nava_rank.score):
+#    def filter_for_double_links(nava_rank_objects):
+#        filtered_links = []
+#        tweets = []
+#        for lnk in nava_rank_objects:
+#            url = lnk.tweet.link
+#            user_id = lnk.tweet.user_id
+#            if (url, user_id) not in filtered_links:
+#                unique_link_from_user = (url, user_id)
+#                filtered_links.append(unique_link_from_user)
+#                tweets.append(lnk)
+#        return tweets
+#    start = Nava_rank.query.order_by(sorted_by).all()
+#    all_links = [x for x in start if x.tweet.url_exists]
+#    all_links.reverse()
+#    links = filter(media_in_link, all_links)
+#    links = filter_for_double_links(links)
+#    links = links[0:30]
+#    return links
 
 if __name__ == '__main__':
+    # test local db - app.run(debug=True)
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

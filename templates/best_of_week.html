@@ -7,11 +7,11 @@
             <tr>
               <td align=right valign=top class="title">{{ loop.index }}.</td>
               <td><center><a href="#"><img src="static/img/grayarrow.gif" border=0 vspace=3 hspace=2></a><span id="arrow"></center></td>
-              <td class="title"><a href={{ link.tweet.link}}>{{ link.tweet.title.first().headline}}</a><span class="sublink"> ({{link.tweet.main_url}}) </span></td>
+              <td class="title"><a href={{ link.link}}>{{ link.headline}}</a><span class="sublink"> ({{link.main_url}}) </span></td>
             </tr>
             <tr>
               <td colspan=2></td>
-              <td class="subtext">by @{{link.tweet.screen_name}}, {{ link.rt_count}} points {{time[loop.index0]}} | comments</td>
+              <td class="subtext">by @{{link.screen_name}}, {{ link.score}} points {{time[loop.index0]}} | comments</td>
             </tr>
             <tr style="height:3px"></tr>
             {% endfor %}
