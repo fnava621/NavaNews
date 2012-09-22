@@ -194,7 +194,7 @@ class Nava_rank(db.Model):
     time_rt_count    = db.Column(db.DateTime)
     tweet_id         = db.Column(db.Integer, db.ForeignKey('tweet.id'))
     tweet            = db.relationship('Tweet', backref=db.backref('retweets', lazy='dynamic'))
-    js_rt            = db.Column(db.Text)
+    js_rt            = db.Column(db.UnicodeText)
     std_deviation    = db.Column(db.Float)
     average_rt_count = db.Column(db.Float)
     std_dev_sigma    = db.Column(db.Float)
@@ -221,10 +221,10 @@ class Nava_rank(db.Model):
 class Headline(db.Model):
 
     id         = db.Column(db.Integer, primary_key=True)
-    html       = db.Column(db.Text)
+    html       = db.Column(db.UnicodeText)
     tweet_id   = db.Column(db.Integer, db.ForeignKey('tweet.id'))
     tweet      = db.relationship('Tweet', backref=db.backref('title', lazy='dynamic'))
-    headline   = db.Column(db.Unicode(256))
+    headline   = db.Column(db.Unicode(500))
 
     
 
