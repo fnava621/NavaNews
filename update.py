@@ -4,7 +4,9 @@ from nava_rank import Tweet
 import math, sched, time, collections, re
 from threading import Timer
 from datetime import datetime, timedelta 
-from nava_rank import tavorite
+from nava_rank import tavorite, tweet_age_in_hours, tweets_age_for_view
+
+
 
 
 def get_tweets_update_db():
