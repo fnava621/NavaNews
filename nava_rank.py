@@ -4,7 +4,6 @@ from flask import *
 from flask.ext.sqlalchemy import *
 from datetime import datetime, timedelta
 from BeautifulSoup import BeautifulSoup
-from update import tweet_age_in_hours, tweets_age_for_view
 
 
 app = Flask(__name__)
@@ -240,6 +239,27 @@ class Tweet(db.Model):
             b = a.rstrip()
             return b
 
+
+
+def tweet_age_in_hours(Tweet):
+
+    created_at = Tweet.date
+    right_now = datetime.utcnow()
+    tweet_age = right_now - created_at
+    age_in_hours = (tweet_age.days)*24 + tweet_age.seconds/3600
+    return age_in_hours
+
+def tweets_age_for_view(Tweets):
+    list_of_tweet_age = []
+    
+    for tweet in Tweets:
+        age_in_hours = tweet_age_in_hours(tweet)
+        if age_in_hours > 24:
+            days = age_in_hours/24
+            list_of_tweet_age.append((str(days) + " days ago"))
+        else:
+            list_of_tweet_age.append((str(age_in_hours) + " hours ago"))
+    return list_of_tweet_age
 
 
 

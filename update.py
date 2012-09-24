@@ -155,26 +155,6 @@ def times_appears_in_stream(link, counter):
                     return pow(1.25, 3)
                     
 
-def tweet_age_in_hours(Tweet):
-
-    created_at = Tweet.date
-    right_now = datetime.utcnow()
-    tweet_age = right_now - created_at
-    age_in_hours = (tweet_age.days)*24 + tweet_age.seconds/3600
-    return age_in_hours
-
-def tweets_age_for_view(Tweets):
-    list_of_tweet_age = []
-    
-    for tweet in Tweets:
-        age_in_hours = tweet_age_in_hours(tweet)
-        if age_in_hours > 24:
-            days = age_in_hours/24
-            list_of_tweet_age.append((str(days) + " days ago"))
-        else:
-            list_of_tweet_age.append((str(age_in_hours) + " hours ago"))
-    return list_of_tweet_age
-
 
 def hacker_news(votes, item_hour_age, gravity=1.8):
     return votes/pow((item_hour_age+2), gravity)
