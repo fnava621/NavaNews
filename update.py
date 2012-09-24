@@ -4,7 +4,7 @@ from nava_rank import Tweet
 import math, sched, time, collections, re
 from threading import Timer
 from datetime import datetime, timedelta 
-
+from nava_rank import tavorite
 
 
 def get_tweets_update_db():
