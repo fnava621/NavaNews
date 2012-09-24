@@ -4,7 +4,7 @@ from flask import *
 from flask.ext.sqlalchemy import *
 from datetime import datetime, timedelta
 from BeautifulSoup import BeautifulSoup
-from update import tweet_age_for_view
+from update import tweet_age_for_view, tweet_age_in_hours
 
 
 app = Flask(__name__)
