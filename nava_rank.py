@@ -18,11 +18,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 
 db = SQLAlchemy(app)
 
-tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
-                   app_secret=os.environ['CONSUMER_SECRET'],
-                   oauth_token=os.environ['ACCESS_TOKEN'],
-                   oauth_token_secret=os.environ['ACCESS_TOKEN_SECRET'])
-
 
 @app.route('/')
 def home():
@@ -253,12 +248,12 @@ class Tweet(db.Model):
 
 
 
-
-
-
-
-
 def get_tweets_update_db():
+    tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
+                   app_secret=os.environ['CONSUMER_SECRET'],
+                   oauth_token=os.environ['ACCESS_TOKEN'],
+                   oauth_token_secret=os.environ['ACCESS_TOKEN_SECRET'])
+
     get_tweets =  tavorite.getHomeTimeline(count=200, include_entities=1, include_retweets=1)
     for x in get_tweets:
         tweet = Tweet(x)
@@ -299,7 +294,7 @@ def update_averages_and_std_deviation(tweets_in_db):
             calculate = sum([pow((g-average), 2) for g in retweet_counts])
             standard_deviation = math.sqrt(calculate/len(retweet_counts))
             Tweet.query.filter_by(user_id=z.user_id).update(dict(average_rt_count=average, std_deviation=standard_deviation))
-            db.session.commit()
+           # db.session.commit()
 
             for x in user:
                 if tweet_age_in_hours(x) < 1680:
@@ -321,9 +316,9 @@ def update_averages_and_std_deviation(tweets_in_db):
 
                     x.score = round(points)
                     x.score_with_time = score_with_time
-                    db.session.commit()
+                    #db.session.commit()
             
-        
+        db.session.commit()
         already_updated.append(updating)
                              
 
@@ -447,6 +442,6 @@ def hacker_news(votes, item_hour_age, gravity=1.8):
 #    return links
 
 if __name__ == '__main__':
-    # test local db - app.run(debug=True)
+#    app.run(debug=True)
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
