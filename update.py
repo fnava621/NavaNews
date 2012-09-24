@@ -1,18 +1,17 @@
 from twython import Twython
-from nava_rank import db, Tweet
+from nava_rank import db
+from nava_rank import Tweet
 import math, sched, time, collections, re
 from threading import Timer
 from datetime import datetime, timedelta 
 
 
-
-
-def get_tweets_update_db():
-    tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
+tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
                    app_secret=os.environ['CONSUMER_SECRET'],
                    oauth_token=os.environ['ACCESS_TOKEN'],
                    oauth_token_secret=os.environ['ACCESS_TOKEN_SECRET'])
 
+def get_tweets_update_db():
     get_tweets =  tavorite.getHomeTimeline(count=200, include_entities=1, include_retweets=1)
     for x in get_tweets:
         tweet = Tweet(x)
