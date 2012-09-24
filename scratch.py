@@ -1,6 +1,9 @@
 #TO DO 
 
 
+# LOAD NEW DB I JUST SET UP WITH DATA - SHOULD BE ALOT FASTER BECAUSE I FIXED MEMORY LEAK
+
+
 # Bug in links_number_of_times
 
 # 1. Finish update_averages_and_std_deviation (CHANGE NAME as well)
