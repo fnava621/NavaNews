@@ -7,6 +7,27 @@ from datetime import datetime, timedelta
 from nava_rank import tavorite, tweet_age_in_hours, tweets_age_for_view, following
 
 
+
+def filter_for_double_links(all_links):
+    filtered_links = []
+
+    tweet_links = []
+
+    for lnk in all_links:
+        link = lnk.link
+        user_id = lnk.user_id
+
+        if (link, user_id) not in filtered_links:
+
+            x = (link, user_id)
+
+            filtered_links.append(x)
+
+            tweet_links.append(link)
+
+    return tweet_links
+
+
 def links_number_of_times():
     Tweets = Tweet.query.all()
     tweets = [x for x in Tweets if x.url_exists] 
