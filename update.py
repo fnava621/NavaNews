@@ -21,8 +21,11 @@ def get_tweets_update_db():
                     db.session.commit()
         else:
             if tweet.url_exists:
-                db.session.add(tweet)
-    db.session.commit()
+                try:
+                    db.session.add(tweet)
+                    db.session.commit()
+                except:
+                    db.session.rollback()
     print "update successful"
 
 
