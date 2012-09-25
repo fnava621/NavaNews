@@ -20,6 +20,8 @@ tavorite = Twython(app_key=os.environ['CONSUMER_KEY'],
                    oauth_token=os.environ['ACCESS_TOKEN'],
                    oauth_token_secret=os.environ['ACCESS_TOKEN_SECRET'])
 
+following = tavorite.getFriendsIDs()['ids']
+
 @app.route('/')
 def home():
     links = Tweet.query.filter_by(url_exists=True).order_by(Tweet.score_with_time.desc()).filter(Tweet.main_url != 'instagram.com', Tweet.main_url != 'www.instagram.com', Tweet.main_url != 'instagr.am', Tweet.main_url != 'youtube.com', Tweet.main_url != 'www.youtube.com', Tweet.main_url != 'www.vimeo.com', Tweet.main_url != 'twitpic.com', Tweet.main_url != 'www.twitpic.com', Tweet.main_url !='i.imgur.com', Tweet.main_url != 'www.yfrog.com').limit(40).all()

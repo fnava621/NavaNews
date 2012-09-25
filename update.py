@@ -4,7 +4,7 @@ from nava_rank import Tweet
 import math, sched, time, collections, re
 from threading import Timer
 from datetime import datetime, timedelta 
-from nava_rank import tavorite, tweet_age_in_hours, tweets_age_for_view
+from nava_rank import tavorite, tweet_age_in_hours, tweets_age_for_view, following
 
 
 
@@ -37,60 +37,41 @@ def update_averages_and_std_deviation(tweet_in_db):
     """Includes retweets of all tweets. Should it be only links?"""
     """tweets_in_db == Tweet.query.all()"""
 
-    already_updated = [] #holds user_id of updated averages
-
     link_counter = links_number_of_times(tweets_in_db)
 
-    for z in tweets_in_db:
-        updating = z.user_id
-        if updating not in already_updated:
-            
-            user = Tweet.query.filter_by(user_id=z.user_id).all()
-            retweet_counts = [y.retweet_count for y in user]
-            
-            
+    for z in following:
+        user = Tweet.query.filter_by(user_id=z).all()
+        retweet_counts = [y.retweet_count for y in user]
             # average retweet count of user_id
-            average = sum(retweet_counts)/len(retweet_counts)
-            calculate = sum([pow((g-average), 2) for g in retweet_counts])
-            standard_deviation = math.sqrt(calculate/len(retweet_counts))
-            Tweet.query.filter_by(user_id=z.user_id).update(dict(average_rt_count=average, std_deviation=standard_deviation))
-            try:
-                db.session.commit()
-            except: 
-                db.session.rollback()
+        average = sum(retweet_counts)/len(retweet_counts)
+        calculate = sum([pow((g-average), 2) for g in retweet_counts])
+        standard_deviation = math.sqrt(calculate/len(retweet_counts))
+        Tweet.query.filter_by(user_id=z).update(dict(average_rt_count=average, std_deviation=standard_deviation))
 
-            for x in user:
+        for x in user:
+            #if tweet_age_in_hours(x) < 1680:
+            if standard_deviation != 0:
+                x.std_dev_sigma    = (x.retweet_count - average)/standard_deviation
+            if len(retweet_counts) < 30 and x.std_dev_sigma > 3:
+                x.std_dev_sigma = 3.0
 
-                #if tweet_age_in_hours(x) < 1680:
-                if standard_deviation != 0:
-                    x.std_dev_sigma    = (x.retweet_count - average)/standard_deviation
-                if len(retweet_counts) < 30 and x.std_dev_sigma > 3:
-                    x.std_dev_sigma = 3.0
-
-                if len(retweet_counts) < 5:
-                    x.std_dev_sigma = 0
-                #ok
-                tweet_hour_age = tweet_age_in_hours(x)
-
-                number_of_times_retweeted = times_appears_in_stream(x.link, link_counter)
-
-                points = (10*(x.std_dev_sigma))*number_of_times_retweeted
-                score_with_time = hacker_news(points, tweet_hour_age)
-
-                x.score = round(points)
-                x.score_with_time = score_with_time
-
-                try:
-                    db.session.commit()
-
-                except:
-                    db.session.rollback()
+            if len(retweet_counts) < 5:
+                x.std_dev_sigma = 0
             
-        already_updated.append(updating)
-                             
+            tweet_hour_age = tweet_age_in_hours(x)
 
+            number_of_times_retweeted = times_appears_in_stream(x.link, link_counter)
 
+            points = (10*(x.std_dev_sigma))*number_of_times_retweeted
+            score_with_time = hacker_news(points, tweet_hour_age)
 
+            x.score = round(points)
+            x.score_with_time = score_with_time
+
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
 
 
 
