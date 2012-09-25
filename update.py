@@ -29,7 +29,7 @@ def filter_for_double_links(all_links):
 
 
 def links_number_of_times():
-    Tweets = Tweet.query.limit(1000).all()
+    Tweets = Tweet.query.order_by(Tweet.date.desc()).limit(1000).all()
     tweets = [x for x in Tweets if x.url_exists] 
     links = filter_for_double_links(tweets)
     cnt = collections.Counter(links).most_common(100)
