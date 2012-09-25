@@ -32,7 +32,7 @@ def get_tweets_update_db():
 
 # STILL NOT GOOD ENOUGH. FASTE FASTER FASTER
 
-def update_averages_and_std_deviation(tweet_in_db):
+def update_averages_and_std_deviation(tweets_in_db):
     
     """Includes retweets of all tweets. Should it be only links?"""
     """tweets_in_db == Tweet.query.all()"""
