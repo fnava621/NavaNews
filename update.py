@@ -43,10 +43,21 @@ def update_averages_and_std_deviation(tweets_in_db):
         user = Tweet.query.filter_by(user_id=z).all()
         retweet_counts = [y.retweet_count for y in user]
             # average retweet count of user_id
-        average = sum(retweet_counts)/len(retweet_counts)
-        calculate = sum([pow((g-average), 2) for g in retweet_counts])
-        standard_deviation = math.sqrt(calculate/len(retweet_counts))
+
+        if len(retweet_counts) != 0:
+            average = sum(retweet_counts)/len(retweet_counts)
+            calculate = sum([pow((g-average), 2) for g in retweet_counts])
+            standard_deviation = math.sqrt(calculate/len(retweet_counts))
+        else:
+            average = 0
+            calculate = 0
+            standard_deviation = 0
+        
         Tweet.query.filter_by(user_id=z).update(dict(average_rt_count=average, std_deviation=standard_deviation))
+        try: 
+            db.session.commit()
+        except:
+            db.session.rollback()
 
         for x in user:
             #if tweet_age_in_hours(x) < 1680:
@@ -67,11 +78,10 @@ def update_averages_and_std_deviation(tweets_in_db):
 
             x.score = round(points)
             x.score_with_time = score_with_time
-
-        try:
-            db.session.commit()
-        except:
-            db.session.rollback()
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
 
 
 
