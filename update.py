@@ -114,10 +114,10 @@ def update_averages_and_std_deviation():
 
 
 #Automate get new tweets every X minues and update the DB    
-def update_every_minute():
+def update_every_fifteen_minutes():
     s = sched.scheduler(time.time, time.sleep)
     print "updating feed beginning"
-    s.enter(260, 1, get_tweets_update_db, ())
+    s.enter(900, 1, get_tweets_update_db, ())
     s.run()
     update_averages_and_std_deviation()
     update_every_minute()
@@ -199,3 +199,6 @@ def hacker_news(votes, item_hour_age, gravity=1.8):
 #    links = filter_for_double_links(links)
 #    links = links[0:30]
 #    return links
+ 
+if __name__ == '__main__':
+    update_every_fifteen_minutes()
