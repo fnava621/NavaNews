@@ -120,7 +120,7 @@ def update_every_fifteen_minutes():
     s.enter(900, 1, get_tweets_update_db, ())
     s.run()
     update_averages_and_std_deviation()
-    update_every_minute()
+    update_every_fifteen_minutes()
     """To continously loop recursive call update_every_minute()"""
 
 
