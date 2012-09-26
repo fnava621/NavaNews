@@ -86,28 +86,28 @@ def update_averages_and_std_deviation():
             db.session.rollback()
 
         for x in user:
-            #if tweet_age_in_hours(x) < 1680:
-            if standard_deviation != 0:
-                x.std_dev_sigma    = (x.retweet_count - average)/standard_deviation
-            if len(retweet_counts) < 30 and x.std_dev_sigma > 3:
-                x.std_dev_sigma = 3.0
+            if tweet_age_in_hours(x) < 168:
+                if standard_deviation != 0:
+                    x.std_dev_sigma    = (x.retweet_count - average)/standard_deviation
+                if len(retweet_counts) < 30 and x.std_dev_sigma > 3:
+                    x.std_dev_sigma = 3.0
 
-            if len(retweet_counts) < 5:
-                x.std_dev_sigma = 0
+                if len(retweet_counts) < 5:
+                    x.std_dev_sigma = 0
             
-            tweet_hour_age = tweet_age_in_hours(x)
+                tweet_hour_age = tweet_age_in_hours(x)
 
-            number_of_times_retweeted = times_appears_in_stream(x.link, link_counter)
+                number_of_times_retweeted = times_appears_in_stream(x.link, link_counter)
 
-            points = (10*(x.std_dev_sigma))*number_of_times_retweeted
-            score_with_time = hacker_news(points, tweet_hour_age)
+                points = (10*(x.std_dev_sigma))*number_of_times_retweeted
+                score_with_time = hacker_news(points, tweet_hour_age)
 
-            x.score = round(points)
-            x.score_with_time = score_with_time
-            try:
-                db.session.commit()
-            except:
-                db.session.rollback()
+                x.score = round(points)
+                x.score_with_time = score_with_time
+                try:
+                    db.session.commit()
+                except:
+                    db.session.rollback()
 
 
 
@@ -119,6 +119,7 @@ def update_every_minute():
     print "updating feed beginning"
     s.enter(260, 1, get_tweets_update_db, ())
     s.run()
+    update_averages_and_std_deviation()
     update_every_minute()
     """To continously loop recursive call update_every_minute()"""
 
